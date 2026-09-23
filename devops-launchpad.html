@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>DevOps Job Launchpad</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/mammoth/mammoth.browser.min.js"></script>
+<style>
+  :root {
+    --bg: #F6F4EC;
+    --grid-line: rgba(31, 42, 34, .05);
+    --panel: #FFFFFF;
+    --panel-2: #EFEADA;
+    --line: #DED6BE;
+    --text: #20281F;
+    --muted: #6C7263;
+    --blue: #2952CC;
+    --blue-ink: #F4F6FF;
+    --amber: #B8721C;
+    --green: #1E8A57;
+    --red: #B8402A;
+    --font-display: 'Space Grotesk', 'IBM Plex Sans', system-ui, sans-serif;
+    --font-ui: 'IBM Plex Sans', system-ui, sans-serif;
+    --font-mono: 'IBM Plex Mono', 'SFMono-Regular', monospace;
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  :root:not([data-theme="light"]) { color-scheme: light; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #191D17; --panel: #22271E; --panel-2: #2A3023; --line: #3A4032;
+      --text: #EDEFE6; --muted: #9CA491; --blue-ink: #EDEFE6;
+      --grid-line: rgba(255,255,255,.04);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #191D17; --panel: #22271E; --panel-2: #2A3023; --line: #3A4032;
+    --text: #EDEFE6; --muted: #9CA491; --blue-ink: #EDEFE6;
+    --grid-line: rgba(255,255,255,.04);
+  }
+  * { box-sizing: border-box; }
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+  body {
+    margin: 0;
+    background-color: var(--bg);
+    background-image:
+      linear-gradient(var(--grid-line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+    background-size: 28px 28px;
+    color: var(--text);
+    font-family: var(--font-ui);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 900px; margin: 0 auto; padding: 32px 20px 90px; }
+
+  header.top {
+    padding-top: env(safe-area-inset-top, 0px);
+    margin-bottom: 4px;
+  }
+  h1 {
+    font-family: var(--font-display);
+    font-size: 26px;
+    font-weight: 600;
+    margin: 0;
+    letter-spacing: -0.01em;
+  }
+  h1 .dot { color: var(--blue); }
+  .sub { color: var(--muted); font-size: 14.5px; max-width: 58ch; margin: 8px 0 30px; }
+
+  /* pipeline as a real connected step track */
+  .pipeline {
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: 28px;
+    position: relative;
+  }
+  .pipeline-step {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0 14px 0 0;
+    text-align: left;
+    position: relative;
+  }
+  .pipeline-step .row-top { display: flex; align-items: center; gap: 10px; width: 100%; }
+  .pipeline-step .node {
+    width: 26px; height: 26px; border-radius: 50%;
+    border: 2px solid var(--line);
+    background: var(--panel);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-mono); font-size: 12px; color: var(--muted);
+    flex-shrink: 0;
+    transition: all .15s ease;
+  }
+  .pipeline-step .connector { flex: 1; height: 2px; background: var(--line); }
+  .pipeline-step:last-child .connector { display: none; }
+  .pipeline-step .label {
+    font-family: var(--font-ui); font-size: 14px; font-weight: 600; color: var(--muted);
+    margin-top: 8px;
+  }
+  .pipeline-step .sublabel {
+    font-family: var(--font-mono); font-size: 10.5px; color: var(--muted); opacity: .7;
+    margin-top: 1px;
+  }
+  .pipeline-step.active .node { border-color: var(--blue); background: var(--blue); color: #fff; }
+  .pipeline-step.active .label { color: var(--text); }
+  .pipeline-step.done .node { border-color: var(--green); color: var(--green); }
+  .pipeline-step.done .connector { background: var(--green); opacity: .4; }
+
+  .stage { display: none; }
+  .stage.active { display: block; animation: fade .25s ease; }
+  @keyframes fade { from { opacity: 0; transform: translateY(4px);} to { opacity: 1; transform: translateY(0);} }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 22px;
+    margin-bottom: 18px;
+    box-shadow: 0 1px 0 rgba(31,42,34,.02);
+  }
+  .panel h2 { font-family: var(--font-display); font-size: 17px; margin: 0 0 4px; font-weight: 600; }
+  .panel p.hint { color: var(--muted); font-size: 13px; margin: 0 0 18px; max-width: 62ch; }
+
+  textarea, input[type=text], input[type=number], select {
+    width: 100%;
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    color: var(--text);
+    border-radius: 7px;
+    padding: 10px 12px;
+    font-family: var(--font-ui);
+    font-size: 14px;
+  }
+  textarea:focus, input:focus, select:focus { outline: 2px solid var(--blue); outline-offset: 1px; }
+  textarea { min-height: 130px; resize: vertical; }
+  label.field { display: block; font-size: 12px; color: var(--muted); margin: 12px 0 6px; font-weight: 500; }
+  label.field:first-child { margin-top: 0; }
+
+  .row { display: flex; gap: 12px; flex-wrap: wrap; }
+  .row > * { flex: 1; min-width: 160px; }
+
+  .file-drop {
+    border: 1.5px dashed var(--line);
+    border-radius: 8px;
+    padding: 16px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 13px;
+    margin-bottom: 14px;
+    cursor: pointer;
+    transition: border-color .15s ease, color .15s ease;
+  }
+  .file-drop:hover { border-color: var(--blue); color: var(--text); }
+
+  button.btn {
+    background: var(--blue);
+    color: var(--blue-ink);
+    border: none;
+    border-radius: 7px;
+    padding: 10px 18px;
+    font-family: var(--font-ui);
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: transform .05s ease, opacity .15s ease;
+  }
+  button.btn:hover { opacity: .92; }
+  button.btn.secondary {
+    background: transparent;
+    color: var(--text);
+    border: 1px solid var(--line);
+  }
+  button.btn.danger { background: transparent; color: var(--red); border: 1px solid var(--line); }
+  button.btn:active { transform: translateY(1px); }
+
+  .profile-card { border-top: 1px solid var(--line); margin-top: 20px; padding-top: 18px; }
+  .profile-card .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 16px; margin-bottom: 14px; }
+  .profile-card .field-out label { display: block; font-size: 11px; color: var(--muted); font-family: var(--font-mono); }
+  .profile-card .field-out input { margin-top: 4px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+  .chip {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    color: var(--text);
+    padding: 4px 10px;
+    border-radius: 100px;
+  }
+  .empty { color: var(--muted); font-size: 13px; font-style: italic; }
+
+  .portal-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; }
+  .portal-card {
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--blue);
+    border-radius: 8px;
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .portal-card.remote { border-left-color: var(--green); }
+  .portal-card .name { font-weight: 600; font-size: 14.5px; }
+  .portal-card .tag { font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
+  .portal-card a.go {
+    align-self: flex-start;
+    font-size: 13px;
+    color: var(--blue);
+    text-decoration: none;
+    font-weight: 600;
+    margin-top: 8px;
+  }
+  .portal-card a.go:hover { text-decoration: underline; }
+
+  .role-tabs { display: flex; gap: 8px; margin-bottom: 18px; flex-wrap: wrap; }
+  .role-tabs button {
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    color: var(--muted);
+    padding: 7px 14px;
+    border-radius: 100px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  .role-tabs button.active { color: var(--blue-ink); background: var(--blue); border-color: var(--blue); }
+
+  .org-job {
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-bottom: 12px;
+    background: var(--panel-2);
+  }
+  .org-job .top-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; flex-wrap: wrap; }
+  .org-job .title { font-family: var(--font-display); font-weight: 600; font-size: 15.5px; }
+  .org-job .company { color: var(--muted); font-size: 13px; margin-top: 2px; }
+  .org-job .meta { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
+  .org-job .meta span {
+    font-family: var(--font-mono); font-size: 11px; color: var(--muted);
+    background: var(--panel); border: 1px solid var(--line); border-radius: 100px; padding: 3px 9px;
+  }
+  .org-job .desc { font-size: 13px; color: var(--text); opacity: .85; margin-bottom: 12px; line-height: 1.5; }
+  .org-job .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; color: var(--muted); font-weight: 500; font-family: var(--font-mono); font-size: 10.5px; padding: 9px 6px; border-bottom: 1px solid var(--line); text-transform: uppercase; letter-spacing: .03em; }
+  td { padding: 8px 6px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+  td input, td select { padding: 6px 8px; font-size: 13px; }
+  .table-wrap { overflow-x: auto; }
+  .status-pill { font-family: var(--font-mono); font-size: 11px; padding: 3px 8px; border-radius: 100px; display: inline-block; }
+
+  .stats { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 18px; }
+  .stat { background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; min-width: 92px; }
+  .stat.due { border-color: var(--amber); background: color-mix(in srgb, var(--amber) 10%, var(--panel-2)); }
+  .stat.due .n { color: var(--amber); }
+  .stat .n { font-family: var(--font-mono); font-size: 21px; font-weight: 600; }
+  .stat .l { font-size: 11px; color: var(--muted); }
+
+  .followup-config { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; flex-wrap: wrap; }
+  .followup-config label { font-size: 13px; color: var(--muted); }
+  .followup-config input[type=number] { width: 70px; display: inline-block; }
+  .followup-config input[type=checkbox] { width: auto; accent-color: var(--blue); }
+  tr.due-row { background: color-mix(in srgb, var(--amber) 8%, transparent); }
+  .fu-badge { font-family: var(--font-mono); font-size: 11px; padding: 3px 8px; border-radius: 100px; display: inline-block; white-space: nowrap; }
+  .fu-due { background: color-mix(in srgb, var(--amber) 20%, transparent); color: var(--amber); }
+  .fu-sent { background: color-mix(in srgb, var(--green) 18%, transparent); color: var(--green); }
+  .fu-none { color: var(--muted); }
+  .fu-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+  .btn.tiny { padding: 5px 10px; font-size: 12px; }
+
+  .status-Saved { background: var(--panel-2); color: var(--muted); }
+  .status-Applied { background: color-mix(in srgb, var(--blue) 15%, transparent); color: var(--blue); }
+  .status-Interview { background: color-mix(in srgb, var(--green) 18%, transparent); color: var(--green); }
+  .status-Offer { background: color-mix(in srgb, var(--green) 32%, transparent); color: var(--green); }
+  .status-Rejected { background: color-mix(in srgb, var(--red) 18%, transparent); color: var(--red); }
+
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(20,24,18,.55);
+    display: none; align-items: center; justify-content: center; z-index: 30; padding: 20px;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+    padding: 22px; max-width: 480px; width: 100%;
+  }
+  .modal h3 { margin: 0 0 10px; font-family: var(--font-display); font-size: 16px; }
+  .modal textarea { min-height: 200px; }
+  .modal .row { margin-top: 14px; }
+
+  .toast {
+    position: fixed;
+    bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--text);
+    color: var(--bg);
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-size: 13px;
+    opacity: 0;
+    transition: all .25s ease;
+    pointer-events: none;
+    z-index: 20;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  @media (max-width: 480px) {
+    .profile-card .grid { grid-template-columns: 1fr; }
+    .pipeline-step .label { font-size: 12.5px; }
+    .pipeline-step .sublabel { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <h1>DevOps Job Launchpad<span class="dot">.</span></h1>
+  </header>
+  <p class="sub">A personal console for your DevOps / Azure DevOps job search — parse your resume once, launch pre-filled searches across real job portals, and track every application in one place. Nothing here auto-submits anything on your behalf; every "Apply" click opens the real listing so you stay in control.</p>
+
+  <nav class="pipeline">
+    <button class="pipeline-step active" data-stage="build">
+      <div class="row-top"><span class="node">01</span><span class="connector"></span></div>
+      <span class="label">Profile</span>
+      <span class="sublabel">parse resume</span>
+    </button>
+    <button class="pipeline-step" data-stage="deploy">
+      <div class="row-top"><span class="node">02</span><span class="connector"></span></div>
+      <span class="label">Search</span>
+      <span class="sublabel">launch portals</span>
+    </button>
+    <button class="pipeline-step" data-stage="orgs">
+      <div class="row-top"><span class="node">03</span><span class="connector"></span></div>
+      <span class="label">Org Boards</span>
+      <span class="sublabel">company postings</span>
+    </button>
+    <button class="pipeline-step" data-stage="monitor">
+      <div class="row-top"><span class="node">04</span></div>
+      <span class="label">Applications</span>
+      <span class="sublabel">track & follow up</span>
+    </button>
+  </nav>
+
+  <!-- STAGE 1: BUILD PROFILE -->
+  <section class="stage active" id="stage-build">
+    <div class="panel">
+      <h2>Paste or upload your resume</h2>
+      <p class="hint">Paste your resume text below, or upload a .docx / .txt file — it's parsed entirely in your browser, nothing is uploaded anywhere.</p>
+      <div class="file-drop" id="fileDrop">Click to choose a .docx or .txt file — or just paste your resume text below</div>
+      <input type="file" id="fileInput" accept=".txt,.docx" style="display:none">
+      <textarea id="resumeText" placeholder="Paste your resume text here..."></textarea>
+      <div class="row" style="margin-top: 12px;">
+        <button class="btn" id="parseBtn">Parse resume</button>
+        <button class="btn secondary" id="clearBtn">Clear</button>
+      </div>
+
+      <div class="profile-card" id="profileCard" style="display:none;">
+        <h2 style="margin-bottom: 12px;">Your profile</h2>
+        <div class="grid">
+          <div class="field-out"><label>name</label><input type="text" id="pName"></div>
+          <div class="field-out"><label>email</label><input type="text" id="pEmail"></div>
+          <div class="field-out"><label>phone</label><input type="text" id="pPhone"></div>
+          <div class="field-out"><label>experience (years)</label><input type="text" id="pExp"></div>
+        </div>
+        <label class="field">Skills detected (click to remove, or add your own below)</label>
+        <div class="chips" id="pSkills"></div>
+        <div class="row" style="margin-top: 12px;">
+          <input type="text" id="addSkillInput" placeholder="Add a skill and press Enter">
+        </div>
+        <div class="row" style="margin-top: 16px;">
+          <button class="btn" id="saveProfileBtn">Save profile</button>
+          <button class="btn secondary" id="copyProfileBtn">Copy summary for application forms</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- STAGE 2: DEPLOY SEARCH -->
+  <section class="stage" id="stage-deploy">
+    <div class="panel">
+      <h2>Launch pre-filled searches</h2>
+      <p class="hint">Set your target role, location and experience once — every card opens that exact search on the real portal in a new tab.</p>
+      <div class="role-tabs" id="roleTabs">
+        <button class="active" data-role="Azure DevOps Engineer">Azure DevOps Engineer</button>
+        <button data-role="DevOps Engineer">DevOps Engineer</button>
+        <button data-role="DevOps Consultant">DevOps Consultant</button>
+        <button data-role="Boomi Developer">Boomi Developer</button>
+      </div>
+      <div class="row">
+        <div>
+          <label class="field">Location</label>
+          <input type="text" id="locInput" value="India">
+        </div>
+        <div>
+          <label class="field">Experience (years)</label>
+          <input type="text" id="expInput" value="4-5">
+        </div>
+      </div>
+      <div class="followup-config" style="margin-top: 14px;">
+        <input type="checkbox" id="freshOnly" style="width:auto;">
+        <label for="freshOnly">Only jobs posted in the last 12 hours (where the portal supports it)</label>
+      </div>
+      <div style="margin-top: 18px;">
+        <div class="portal-grid" id="portalGrid"></div>
+      </div>
+    </div>
+    <div class="panel">
+      <h2>Keep it fresh</h2>
+      <p class="hint" style="margin-bottom:0;">This page doesn't poll portals in the background — open it and click through daily (or bookmark it) to catch new postings. Most portals also let you save this exact search and email you daily alerts directly from their site, which is worth turning on alongside this.</p>
+    </div>
+  </section>
+
+  <!-- STAGE 3: ORG BOARDS -->
+  <section class="stage" id="stage-orgs">
+    <div class="panel">
+      <h2>Openings on company career boards</h2>
+      <p class="hint">Pulled directly from real employer postings — filtered to the <strong>last 3 days</strong> only (no 12-hour filter applies here), and matched to the role selected in Search. This page can't poll them live, so use Refresh to be reminded to ask me for a new pull.</p>
+      <div class="row" style="margin-bottom: 14px;">
+        <button class="btn secondary" id="orgRefreshBtn" style="flex:none;">↻ Refresh</button>
+        <span class="tag" id="orgSnapshotLabel" style="align-self:center;"></span>
+      </div>
+      <div id="orgJobsList"></div>
+    </div>
+  </section>
+
+  <!-- STAGE 3: MONITOR APPLICATIONS -->
+  <section class="stage" id="stage-monitor">
+    <div class="panel">
+      <h2>Application tracker</h2>
+      <p class="hint">Log what you've applied to. Saved locally in this browser only.</p>
+      <div class="followup-config">
+        <label for="thresholdInput">Flag for follow-up after</label>
+        <input type="number" id="thresholdInput" min="1" value="2">
+        <label>days with no response</label>
+      </div>
+      <div class="stats" id="statsRow"></div>
+      <div class="table-wrap">
+        <table id="trackerTable">
+          <thead>
+            <tr>
+              <th>Company</th><th>Role</th><th>Portal</th><th>Applied</th><th>Status</th><th>Link</th><th>Follow-up</th><th></th>
+            </tr>
+          </thead>
+          <tbody id="trackerBody"></tbody>
+        </table>
+      </div>
+      <div class="row" style="margin-top:16px;">
+        <button class="btn" id="addRowBtn">+ Add application</button>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="modal-overlay" id="fuModal">
+  <div class="modal">
+    <h3>Follow-up message draft</h3>
+    <textarea id="fuMessageText" readonly></textarea>
+    <div class="row">
+      <button class="btn" id="fuCopyBtn">Copy message</button>
+      <button class="btn secondary" id="fuCloseBtn">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  // ---------- storage helpers ----------
+  function safeGet(key, fallback){
+    try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; }
+    catch(e){ return fallback; }
+  }
+  function safeSet(key, val){
+    try { localStorage.setItem(key, JSON.stringify(val)); } catch(e){}
+  }
+  function toast(msg){
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(t._h);
+    t._h = setTimeout(()=> t.classList.remove('show'), 2200);
+  }
+
+  // ---------- pipeline tabs ----------
+  document.querySelectorAll('.pipeline-step').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.querySelectorAll('.pipeline-step').forEach(b=>b.classList.remove('active'));
+      document.querySelectorAll('.stage').forEach(s=>s.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('stage-' + btn.dataset.stage).classList.add('active');
+    });
+  });
+
+  // ---------- resume parsing ----------
+  const SKILL_KEYWORDS = ['Azure DevOps','Azure','AWS','GCP','CI/CD','Jenkins','GitHub Actions','GitLab CI',
+    'Terraform','Ansible','Docker','Kubernetes','Helm','Chef','Puppet','Linux','PowerShell','Bash','Python',
+    'Git','Bicep','ARM Templates','Nagios','Prometheus','Grafana','ELK','Splunk','Nginx','Networking',
+    'Security','DevSecOps','SonarQube','Artifactory','Nexus','YAML','Monitoring','Logging','IAM','Key Vault',
+    'App Service','AKS','EKS','Service Mesh','Istio','Vault','SRE','Site Reliability','Shell Scripting',
+    'Windows Server','Release Management','Agile','Scrum','Boomi','Dell Boomi','MuleSoft','Integration'];
+
+  function extractProfile(text){
+    const emailMatch = text.match(/[\w.+-]+@[\w-]+\.[\w.-]+/);
+    const phoneMatch = text.match(/(\+?\d[\d\s-]{8,14}\d)/);
+    const expMatch = text.match(/(\d+)\+?\s*(?:years|yrs)\b/i);
+    const lines = text.split('\n').map(l=>l.trim()).filter(Boolean);
+    let name = '';
+    for (const l of lines){
+      if (l.length < 40 && !l.includes('@') && !/\d{3,}/.test(l)){
+        name = l; break;
+      }
+    }
+    const skills = SKILL_KEYWORDS.filter(k => new RegExp('\\b' + k.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + '\\b','i').test(text));
+    return {
+      name: name || '',
+      email: emailMatch ? emailMatch[0] : '',
+      phone: phoneMatch ? phoneMatch[0].trim() : '',
+      experience: expMatch ? expMatch[1] + ' years' : '',
+      skills: skills
+    };
+  }
+
+  function renderProfile(p){
+    document.getElementById('profileCard').style.display = 'block';
+    document.getElementById('pName').value = p.name || '';
+    document.getElementById('pEmail').value = p.email || '';
+    document.getElementById('pPhone').value = p.phone || '';
+    document.getElementById('pExp').value = p.experience || '';
+    const chips = document.getElementById('pSkills');
+    chips.innerHTML = '';
+    (p.skills || []).forEach(s => addChip(s));
+  }
+  function addChip(skill){
+    const chips = document.getElementById('pSkills');
+    const c = document.createElement('span');
+    c.className = 'chip';
+    c.textContent = skill + ' ×';
+    c.title = 'Click to remove';
+    c.style.cursor = 'pointer';
+    c.addEventListener('click', ()=> c.remove());
+    chips.appendChild(c);
+  }
+
+  document.getElementById('fileDrop').addEventListener('click', ()=> document.getElementById('fileInput').click());
+  document.getElementById('fileInput').addEventListener('change', async (e)=>{
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      if (file.name.toLowerCase().endsWith('.docx')){
+        if (typeof mammoth === 'undefined'){
+          toast('Couldn\'t load the .docx reader — paste the text instead');
+          return;
+        }
+        const arrayBuffer = await file.arrayBuffer();
+        const result = await mammoth.extractRawText({arrayBuffer});
+        document.getElementById('resumeText').value = result.value;
+      } else {
+        const text = await file.text();
+        document.getElementById('resumeText').value = text;
+      }
+      toast('File loaded — click Parse resume');
+    } catch(err){
+      toast('Couldn\'t read that file — try pasting the text instead');
+    }
+  });
+
+  document.getElementById('parseBtn').addEventListener('click', ()=>{
+    const text = document.getElementById('resumeText').value;
+    if (!text.trim()){ toast('Paste or upload a resume first'); return; }
+    const profile = extractProfile(text);
+    renderProfile(profile);
+  });
+  document.getElementById('clearBtn').addEventListener('click', ()=>{
+    document.getElementById('resumeText').value = '';
+    document.getElementById('profileCard').style.display = 'none';
+    document.getElementById('pName').value = '';
+    document.getElementById('pEmail').value = '';
+    document.getElementById('pPhone').value = '';
+    document.getElementById('pExp').value = '';
+    document.getElementById('pSkills').innerHTML = '';
+    try { localStorage.removeItem('devops_profile'); } catch(e){}
+    toast('Cleared — nothing saved for this profile anymore');
+  });
+  document.getElementById('addSkillInput').addEventListener('keydown', (e)=>{
+    if (e.key === 'Enter' && e.target.value.trim()){
+      addChip(e.target.value.trim());
+      e.target.value = '';
+    }
+  });
+  document.getElementById('saveProfileBtn').addEventListener('click', ()=>{
+    const skills = Array.from(document.querySelectorAll('#pSkills .chip')).map(c => c.textContent.replace(' ×',''));
+    const profile = {
+      name: document.getElementById('pName').value,
+      email: document.getElementById('pEmail').value,
+      phone: document.getElementById('pPhone').value,
+      experience: document.getElementById('pExp').value,
+      skills: skills
+    };
+    safeSet('devops_profile', profile);
+    toast('Profile saved on this device');
+  });
+  document.getElementById('copyProfileBtn').addEventListener('click', async ()=>{
+    const skills = Array.from(document.querySelectorAll('#pSkills .chip')).map(c => c.textContent.replace(' ×',''));
+    const summary = [
+      document.getElementById('pName').value,
+      document.getElementById('pEmail').value,
+      document.getElementById('pPhone').value,
+      'Experience: ' + document.getElementById('pExp').value,
+      'Skills: ' + skills.join(', ')
+    ].join('\n');
+    try {
+      await navigator.clipboard.writeText(summary);
+      toast('Copied — paste into any application form');
+    } catch(e){
+      toast('Copy not available — select the fields manually');
+    }
+  });
+
+  // load saved profile on start
+  const savedProfile = safeGet('devops_profile', null);
+  if (savedProfile) renderProfile(savedProfile);
+
+  // ---------- deploy search ----------
+  let currentRole = 'Azure DevOps Engineer';
+  document.querySelectorAll('#roleTabs button').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.querySelectorAll('#roleTabs button').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      currentRole = btn.dataset.role;
+      renderPortals();
+      renderOrgJobs();
+    });
+  });
+  document.getElementById('locInput').addEventListener('input', renderPortals);
+  document.getElementById('expInput').addEventListener('input', renderPortals);
+
+  function slug(s){ return s.toLowerCase().trim().replace(/\s+/g,'-'); }
+
+  function buildPortalLinks(role, loc, exp, freshOnly){
+    const q = encodeURIComponent(role);
+    const locEnc = encodeURIComponent(loc || 'India');
+    const roleSlug = slug(role);
+    const links = [
+      { name: 'LinkedIn', tag: 'jobs.linkedin.com', url: `https://www.linkedin.com/jobs/search/?keywords=${q}&location=${locEnc}&f_E=4` },
+      { name: 'Naukri', tag: 'naukri.com', url: `https://www.naukri.com/${roleSlug}-jobs-in-${slug(loc || 'india')}?experience=${encodeURIComponent(exp || '4-5')}`, freshNote: "Tip: sort results by \"Date\" on the page for the newest first" },
+      { name: 'Indeed', tag: 'in.indeed.com', url: `https://in.indeed.com/jobs?q=${q}&l=${locEnc}` },
+      { name: 'foundit (Monster)', tag: 'foundit.in', url: `https://www.foundit.in/search/${roleSlug}-jobs`, freshNote: "Tip: use the \"Date Posted\" filter on the page" },
+      { name: 'Glassdoor', tag: 'glassdoor.co.in', url: `https://www.glassdoor.co.in/Job/jobs.htm?sc.keyword=${q}`, freshNote: "Tip: sort by \"Most Recent\" on the page" },
+      { name: 'Wellfound', tag: 'wellfound.com', url: `https://wellfound.com/role/l/${roleSlug}/india` },
+      { name: 'Shine', tag: 'shine.com', url: `https://www.shine.com/job-search/${roleSlug}-jobs`, freshNote: "Tip: use \"Sort by Freshness\" on the page — default sort includes older posts" },
+      { name: 'Instahyre', tag: 'instahyre.com', url: `https://www.instahyre.com/search-jobs/?q=${q}` },
+      { name: 'Cutshort', tag: 'cutshort.io', url: `https://cutshort.io/jobs?q=${q}` },
+      { name: 'RemoteOK', tag: 'remoteok.com · remote', url: `https://remoteok.com/remote-devops-jobs` },
+      { name: 'We Work Remotely', tag: 'weworkremotely.com · remote', url: `https://weworkremotely.com/remote-jobs/search?term=${q}` },
+    ];
+    if (freshOnly){
+      // LinkedIn genuinely supports an exact "posted in the last N seconds" filter.
+      links[0].url += '&f_TPR=r43200';
+      links[0].freshNote = 'Live filter applied: last 12 hours';
+      // Indeed's narrowest built-in window is 24 hours, not 12.
+      links[2].url += '&fromage=1';
+      links[2].freshNote = 'Narrowest filter available: last 24 hours';
+    }
+    return links;
+  }
+
+  function renderPortals(){
+    const loc = document.getElementById('locInput').value || 'India';
+    const exp = document.getElementById('expInput').value || '';
+    const freshOnly = document.getElementById('freshOnly').checked;
+    const grid = document.getElementById('portalGrid');
+    grid.innerHTML = '';
+    buildPortalLinks(currentRole, loc, exp, freshOnly).forEach(p=>{
+      const card = document.createElement('div');
+      card.className = 'portal-card';
+      card.innerHTML = `
+        <div class="name">${p.name}</div>
+        <div class="tag">${p.tag}</div>
+        ${p.freshNote ? `<div class="tag" style="color: var(--amber);">${p.freshNote}</div>` : ''}
+        <a class="go" href="${p.url}" target="_blank" rel="noopener">Open search →</a>
+      `;
+      grid.appendChild(card);
+    });
+  }
+  renderPortals();
+  document.getElementById('freshOnly').addEventListener('change', renderPortals);
+
+  // ---------- org career boards (snapshot, pulled Sep 24 2026) ----------
+  // Filtered to postings from the last 3 days only, AND matched to the role tab selected in Search.
+  const ORG_JOBS_WINDOW_DAYS = 3;
+  const ORG_JOBS_SNAPSHOT_LABEL = 'Sep 24, 2026';
+  const ORG_JOBS = [
+    {
+      title: 'DevOps Engineer', company: 'Capgemini', location: 'Pune', category: 'DevOps',
+      exp: '4-6 yrs', jobId: '150937439', postedDate: '2026-09-23',
+      desc: 'Capgemini Engineering — build and deploy automation, DevOps toolchain for R&D and engineering services delivery.',
+      url: 'https://www.foundit.in/job/devops-engineer-capgemini-pune-58271866',
+      source: 'foundit.in (Capgemini posting)'
+    },
+    {
+      title: 'Azure DevOps Engineer', company: 'Tata Consultancy Services', location: 'Pune', category: 'DevOps',
+      exp: '4-6 yrs', jobId: '151955315', postedDate: '2026-09-21',
+      desc: 'CI/CD pipelines and infrastructure on Azure DevOps; Azure Data Factory and Power BI exposure a plus. Walk-in drive.',
+      url: 'https://www.founditgulf.com/job/azure-devops-6-pune-quadri-8-aug-26-walkin-tata-consultancy-services-pune-61420855',
+      source: 'founditgulf.com (TCS posting)'
+    },
+    {
+      title: 'Boomi Developer', company: 'Capgemini', location: 'Bengaluru', category: 'Boomi',
+      exp: '4-6 yrs (est.)', jobId: '151831781', postedDate: '2026-09-23',
+      desc: 'Design and develop integrations using Dell Boomi AtomSphere — connectors, APIs, data mapping across ERP/CRM/SAP/Salesforce/Oracle.',
+      url: 'https://www.foundit.in/job/boomi-developer-capgemini-bengaluru-bangalore-61044452',
+      source: 'foundit.in (Capgemini posting)'
+    },
+  ];
+  const ROLE_TO_CATEGORY = {
+    'Azure DevOps Engineer': 'DevOps',
+    'DevOps Engineer': 'DevOps',
+    'DevOps Consultant': 'DevOps',
+    'Boomi Developer': 'Boomi'
+  };
+
+  function renderOrgJobs(){
+    const list = document.getElementById('orgJobsList');
+    list.innerHTML = '';
+    const now = new Date();
+    const todayMid = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const wantCategory = ROLE_TO_CATEGORY[currentRole] || 'DevOps';
+    const fresh = ORG_JOBS.filter(job=>{
+      const posted = new Date(job.postedDate + 'T00:00:00');
+      const daysAgo = Math.round((todayMid - posted) / 86400000);
+      job._daysAgo = daysAgo;
+      return daysAgo >= 0 && daysAgo <= ORG_JOBS_WINDOW_DAYS && job.category === wantCategory;
+    });
+    if (fresh.length === 0){
+      list.innerHTML = `<p class="empty">No "${wantCategory}" postings found within the last ${ORG_JOBS_WINDOW_DAYS} days in this snapshot (pulled ${ORG_JOBS_SNAPSHOT_LABEL}). Click Refresh below, or just ask me in chat.</p>`;
+      return;
+    }
+    fresh.forEach((job)=>{
+      const i = ORG_JOBS.indexOf(job);
+      const card = document.createElement('div');
+      card.className = 'org-job';
+      const agoLabel = job._daysAgo === 0 ? 'Posted today' : `Posted ${job._daysAgo}d ago`;
+      card.innerHTML = `
+        <div class="top-row">
+          <div>
+            <div class="title">${job.title}</div>
+            <div class="company">${job.company} · ${job.location}</div>
+          </div>
+        </div>
+        <div class="meta">
+          <span>Exp: ${job.exp}</span>
+          <span>Job ID: ${job.jobId}</span>
+          <span>${agoLabel}</span>
+          <span>${job.source}</span>
+        </div>
+        <div class="desc">${job.desc}</div>
+        <div class="actions">
+          <a class="btn secondary" style="text-decoration:none; display:inline-block;" href="${job.url}" target="_blank" rel="noopener">View posting →</a>
+          <button class="btn" data-track="${i}">+ Track this application</button>
+        </div>
+      `;
+      list.appendChild(card);
+    });
+    list.querySelectorAll('[data-track]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const job = ORG_JOBS[+btn.dataset.track];
+        apps.push({company: job.company, role: job.title, portal: job.source, date: todayStr(), status: 'Saved', link: job.url, followUpSent: null});
+        safeSet('devops_apps', apps);
+        renderTracker();
+        toast('Added to your application tracker');
+      });
+    });
+  }
+
+  // ---------- application tracker ----------
+  let apps = safeGet('devops_apps', []);
+  const STATUSES = ['Saved','Applied','Interview','Offer','Rejected'];
+  let threshold = safeGet('devops_followup_threshold', 2);
+  const thresholdInput = document.getElementById('thresholdInput');
+  thresholdInput.value = threshold;
+  thresholdInput.addEventListener('change', ()=>{
+    threshold = Math.max(1, +thresholdInput.value || 2);
+    thresholdInput.value = threshold;
+    safeSet('devops_followup_threshold', threshold);
+    renderTracker();
+  });
+
+  function daysSince(dateStr){
+    if (!dateStr) return null;
+    const then = new Date(dateStr + 'T00:00:00');
+    if (isNaN(then.getTime())) return null;
+    const now = new Date();
+    const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    return Math.round((todayMidnight - then) / 86400000);
+  }
+  function todayStr(){
+    const d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  }
+
+  function followupState(app){
+    const d = daysSince(app.date);
+    if (app.status !== 'Applied' || d === null) return { state: 'none', days: d };
+    if (app.followUpSent) return { state: 'sent', days: d };
+    if (d >= threshold) return { state: 'due', days: d };
+    return { state: 'waiting', days: d };
+  }
+
+  function renderTracker(){
+    const body = document.getElementById('trackerBody');
+    body.innerHTML = '';
+    apps.forEach((app, i)=>{
+      const fu = followupState(app);
+      const tr = document.createElement('tr');
+      if (fu.state === 'due') tr.classList.add('due-row');
+      let fuCell;
+      if (fu.state === 'due'){
+        fuCell = `<span class="fu-badge fu-due">Due · ${fu.days}d</span>
+          <div class="fu-actions" style="margin-top:6px;">
+            <button class="btn tiny secondary" data-draft="${i}">Draft</button>
+            <button class="btn tiny" data-logfu="${i}">Mark sent</button>
+          </div>`;
+      } else if (fu.state === 'sent'){
+        fuCell = `<span class="fu-badge fu-sent">Followed up · ${app.followUpSent}</span>`;
+      } else if (fu.state === 'waiting'){
+        fuCell = `<span class="fu-badge fu-none">${threshold - fu.days}d until due</span>`;
+      } else {
+        fuCell = `<span class="fu-badge fu-none">—</span>`;
+      }
+      tr.innerHTML = `
+        <td><input type="text" value="${escapeAttr(app.company)}" data-i="${i}" data-f="company"></td>
+        <td><input type="text" value="${escapeAttr(app.role)}" data-i="${i}" data-f="role"></td>
+        <td><input type="text" value="${escapeAttr(app.portal)}" data-i="${i}" data-f="portal"></td>
+        <td><input type="text" placeholder="YYYY-MM-DD" value="${escapeAttr(app.date)}" data-i="${i}" data-f="date"></td>
+        <td>
+          <select data-i="${i}" data-f="status">
+            ${STATUSES.map(s => `<option value="${s}" ${app.status===s?'selected':''}>${s}</option>`).join('')}
+          </select>
+        </td>
+        <td><input type="text" placeholder="link" value="${escapeAttr(app.link)}" data-i="${i}" data-f="link"></td>
+        <td>${fuCell}</td>
+        <td><button class="btn danger" data-del="${i}">Del</button></td>
+      `;
+      body.appendChild(tr);
+    });
+    body.querySelectorAll('input,select').forEach(el=>{
+      el.addEventListener('change', (e)=>{
+        const i = +e.target.dataset.i, f = e.target.dataset.f;
+        apps[i][f] = e.target.value;
+        if (f === 'status' && e.target.value !== 'Applied') apps[i].followUpSent = null;
+        safeSet('devops_apps', apps);
+        renderTracker();
+      });
+    });
+    body.querySelectorAll('[data-del]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        apps.splice(+btn.dataset.del, 1);
+        safeSet('devops_apps', apps);
+        renderTracker();
+      });
+    });
+    body.querySelectorAll('[data-logfu]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        apps[+btn.dataset.logfu].followUpSent = todayStr();
+        safeSet('devops_apps', apps);
+        renderTracker();
+        toast('Marked as followed up');
+      });
+    });
+    body.querySelectorAll('[data-draft]').forEach(btn=>{
+      btn.addEventListener('click', ()=> openFollowupDraft(+btn.dataset.draft));
+    });
+    renderStats();
+  }
+  function escapeAttr(s){ return (s || '').replace(/"/g,'&quot;'); }
+
+  function renderStats(){
+    const row = document.getElementById('statsRow');
+    row.innerHTML = '';
+    const counts = {};
+    STATUSES.forEach(s => counts[s] = 0);
+    apps.forEach(a => { if (counts[a.status] !== undefined) counts[a.status]++; });
+    const dueCount = apps.filter(a => followupState(a).state === 'due').length;
+    STATUSES.forEach(s=>{
+      const el = document.createElement('div');
+      el.className = 'stat';
+      el.innerHTML = `<div class="n">${counts[s]}</div><div class="l">${s}</div>`;
+      row.appendChild(el);
+    });
+    const dueEl = document.createElement('div');
+    dueEl.className = 'stat due';
+    dueEl.innerHTML = `<div class="n">${dueCount}</div><div class="l">Follow-up due</div>`;
+    row.appendChild(dueEl);
+  }
+
+  function openFollowupDraft(i){
+    const app = apps[i];
+    const profile = safeGet('devops_profile', {});
+    const name = profile.name || '[Your name]';
+    const email = profile.email || '';
+    const phone = profile.phone || '';
+    const contactLine = [email, phone].filter(Boolean).join(' | ');
+    const msg =
+`Subject: Following up on my application for ${app.role || 'the role'} at ${app.company || 'your team'}
+
+Hi,
+
+I applied for the ${app.role || '[role]'} position at ${app.company || '[company]'} on ${app.date || '[date]'} and wanted to check in on the status of my application. I'm still very interested in the opportunity and happy to share any additional information that would help.
+
+Thanks for your time,
+${name}
+${contactLine}`;
+    document.getElementById('fuMessageText').value = msg;
+    document.getElementById('fuModal').classList.add('show');
+    document.getElementById('fuModal')._appIndex = i;
+  }
+  document.getElementById('fuCloseBtn').addEventListener('click', ()=>{
+    document.getElementById('fuModal').classList.remove('show');
+  });
+  document.getElementById('fuCopyBtn').addEventListener('click', async ()=>{
+    const text = document.getElementById('fuMessageText').value;
+    try {
+      await navigator.clipboard.writeText(text);
+      toast('Copied — paste into your email or the portal\'s message box');
+    } catch(e){
+      toast('Copy not available — select the text manually');
+    }
+  });
+
+  document.getElementById('addRowBtn').addEventListener('click', ()=>{
+    apps.push({company:'', role: currentRole, portal:'', date:'', status:'Saved', link:'', followUpSent:null});
+    safeSet('devops_apps', apps);
+    renderTracker();
+  });
+
+  renderTracker();
+  renderOrgJobs();
+  document.getElementById('orgSnapshotLabel').textContent = 'Snapshot: ' + ORG_JOBS_SNAPSHOT_LABEL;
+  document.getElementById('orgRefreshBtn').addEventListener('click', ()=>{
+    toast('This list only updates when you ask me to pull a fresh batch in chat — it can\'t poll company sites on its own.');
+  });
+})();
+</script>
+</body>
+</html>
