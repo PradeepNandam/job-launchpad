@@ -427,7 +427,12 @@
   <section class="stage" id="stage-orgs">
     <div class="panel">
       <h2>Openings on company career boards</h2>
-      <p class="hint">Pulled directly from real employer postings — filtered to the <strong>last 3 days</strong> only (no 12-hour filter applies here), and matched to the role selected in Search. This page can't poll them live, so use Refresh to be reminded to ask me for a new pull.</p>
+      <p class="hint">Pulled directly from real employer postings — filtered to the <strong>last 3 days</strong> only. Pick a category below (independent of the Search tab). This page can't poll them live, so use Refresh to be reminded to ask me for a new pull.</p>
+      <div class="role-tabs" id="orgCategoryTabs">
+        <button class="active" data-cat="All">All</button>
+        <button data-cat="DevOps">DevOps</button>
+        <button data-cat="Boomi">Boomi</button>
+      </div>
       <div class="row" style="margin-bottom: 14px;">
         <button class="btn secondary" id="orgRefreshBtn" style="flex:none;">↻ Refresh</button>
         <span class="tag" id="orgSnapshotLabel" style="align-self:center;"></span>
@@ -643,7 +648,6 @@
       btn.classList.add('active');
       currentRole = btn.dataset.role;
       renderPortals();
-      renderOrgJobs();
     });
   });
   document.getElementById('locInput').addEventListener('input', renderPortals);
@@ -733,21 +737,31 @@
     'DevOps Consultant': 'DevOps',
     'Boomi Developer': 'Boomi'
   };
+  let orgCategoryFilter = 'All';
+  document.querySelectorAll('#orgCategoryTabs button').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.querySelectorAll('#orgCategoryTabs button').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      orgCategoryFilter = btn.dataset.cat;
+      renderOrgJobs();
+    });
+  });
 
   function renderOrgJobs(){
     const list = document.getElementById('orgJobsList');
     list.innerHTML = '';
     const now = new Date();
     const todayMid = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const wantCategory = ROLE_TO_CATEGORY[currentRole] || 'DevOps';
     const fresh = ORG_JOBS.filter(job=>{
       const posted = new Date(job.postedDate + 'T00:00:00');
       const daysAgo = Math.round((todayMid - posted) / 86400000);
       job._daysAgo = daysAgo;
-      return daysAgo >= 0 && daysAgo <= ORG_JOBS_WINDOW_DAYS && job.category === wantCategory;
+      const inWindow = daysAgo >= 0 && daysAgo <= ORG_JOBS_WINDOW_DAYS;
+      const matchesCategory = orgCategoryFilter === 'All' || job.category === orgCategoryFilter;
+      return inWindow && matchesCategory;
     });
     if (fresh.length === 0){
-      list.innerHTML = `<p class="empty">No "${wantCategory}" postings found within the last ${ORG_JOBS_WINDOW_DAYS} days in this snapshot (pulled ${ORG_JOBS_SNAPSHOT_LABEL}). Click Refresh below, or just ask me in chat.</p>`;
+      list.innerHTML = `<p class="empty">No "${orgCategoryFilter}" postings found within the last ${ORG_JOBS_WINDOW_DAYS} days in this snapshot (pulled ${ORG_JOBS_SNAPSHOT_LABEL}). Click Refresh below, or just ask me in chat.</p>`;
       return;
     }
     fresh.forEach((job)=>{
